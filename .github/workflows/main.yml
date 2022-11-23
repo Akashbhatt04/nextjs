@@ -1,56 +1,18 @@
-name: example - next.js
-on:
-  push:
-    branches:
-      - main
-  pull_request_target:
-
+on: push
 jobs:
-  static:
-    runs-on: ubuntu-latest
+  test:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v2
-      - run: |
-          npm ci
-          npx vercel pull --yes --token=${VERCEL_TOKEN}
-        working-directory: /
-        env:
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_NEXTJS }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      - run: |
-          npx vercel build
-        if: github.event_name == 'pull_request_target'
-        working-directory: /
-        env:
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_NEXTJS }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-   
-      - name: production or not
-        id: prod_or_not
-        run: |
-          if [ "$REF" == 'refs/heads/master' ]
-          then
-              echo "vercel-args=--prod --prebuilt" >> $GITHUB_OUTPUT
-          else
-              echo "vercel-args=--prebuilt" >> $GITHUB_OUTPUT
-          fi
-        env:
-          REF: ${{ github.ref }}
-      - run: |
-          npx vercel build --prod
-        if: github.event_name == 'push'
-        working-directory: example/nextjs
-        env:
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_NEXTJS }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      - uses: ./
-        id: now-deployment-production
-        if: github.event_name == 'push'
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_NEXTJS }}
-          vercel-args: ${{ steps.prod_or_not.outputs.vercel-args }}
-          working-directory: /
+    - uses: actions/checkout@v3
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 16
+    - run: npm install-ci-test
+    - uses:
+    publish:
+    needs: [test]
+     steps:
+    - uses: actions/checkout@v3
